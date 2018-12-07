@@ -1,12 +1,10 @@
-# 在应用程序Crash时收集可用的信息
-
 ## App Crash
 
 在应用程序Crash的时候， 我们通常想收集一些信息来帮助分析本次Crash。下面列举了一些在应用程序Crash的时候，应该收集的一些基本信息。
 
 ### 如何收集
 
-通过接口Thread.UncaughtExceptionHandler可以知道应用程序Crash的时机，在接口回调方法uncaughtException中获取Crash信息，Thread.UncaughtExceptionHandler的作用如下：
+通过接口Thread.UncaughtExceptionHandler可以知道应用程序Crash时机，在接口回调方法uncaughtException中获取异常信息，Thread.UncaughtExceptionHandler的作用如下：
 
  - 当线程因未捕获的异常而突然终止时调用的处理程序接口。
  - 当线程由于未捕获的异常而即将终止时，Java虚拟机将使用{@link #getUncaughtExceptionHandler}向线程查询其UncaughtExceptionHandler，并将调用处理程序的uncaughtException方法，将线程和异常作为参数传递。
@@ -86,7 +84,7 @@ public class YourApplication extents Application
             WindowManager windowManager =
                     (WindowManager) context.getSystemService(Context.
                             WINDOW_SERVICE);
-            if (windowManager != null) {
+            if (windowManager != null) {//手机是否含有虚拟键盘
                 final Display display = windowManager.getDefaultDisplay();
                 Point outPoint = new Point();
                 if (Build.VERSION.SDK_INT >= 19) {
@@ -390,9 +388,9 @@ public class YourApplication extents Application
             if (includeFragment) {
                 Map<String, List<String>> temp = null;
                 if (activity instanceof FragmentActivity) {
-                    temp = getSupportFragmentOfActivity(activity.getClass().getName(), ((FragmentActivity) activity).getSupportFragmentManager());
+                    temp = getSupportFragmentOfActivity(activity.getClass().getName(), ((FragmentActivity) activity).getSupportFragmentManager());//是support包中的Fragment
                 } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                    temp = getFragmentOfActivity(activity.getClass().getName(), activity.getFragmentManager());
+                    temp = getFragmentOfActivity(activity.getClass().getName(), activity.getFragmentManager());//是app包中的Fragment
                 }
                 if (temp != null && !temp.isEmpty()) stackMap.putAll(temp);
             } else {
@@ -406,15 +404,16 @@ public class YourApplication extents Application
         return new JSONArray(stackList).toString();
     }
 
+   //Fragment嵌套是一个树形结构，所以相当于按顺序层级遍历树
     @TargetApi(Build.VERSION_CODES.O)
     private static Map<String, List<String>> getFragmentOfActivity(String
                                                                            name, android.app.FragmentManager fragmentManager) {
         Map<String, android.app.FragmentManager> fragmentManagers = new LinkedHashMap<>();
-        fragmentManagers.put(name, fragmentManager);
+        fragmentManagers.put(name, fragmentManager);//存储根节点
         Map<String, android.app.FragmentManager> childFragmentManagers = null;
         Map<String, List<String>> result = new LinkedHashMap<>();
         int size = 4;
-        while (!fragmentManagers.isEmpty()) {
+        while (!fragmentManagers.isEmpty()) { //开始遍历每一层的节点
             childFragmentManagers = new LinkedHashMap<>(size);
             Set<Map.Entry<String, android.app.FragmentManager>> entries = fragmentManagers.entrySet();
             Iterator<Map.Entry<String, android.app.FragmentManager>> iterator = entries.iterator();
@@ -430,7 +429,7 @@ public class YourApplication extents Application
                         Log.d(TAG, "getFragmentOfActivity-->key=" + entry.getKey() + ";value[" + index + "]=" + fragmentName);
                     }
                     if (!fragment.getChildFragmentManager().getFragments().isEmpty()) {
-                        childFragmentManagers.put(values.contains(fragmentName) ? fragmentName + index : fragmentName, fragment.getChildFragmentManager());
+                        childFragmentManagers.put(values.contains(fragmentName) ? fragmentName + index : fragmentName, fragment.getChildFragmentManager()); //存储下一层的节点
                     }
                     values.add(fragmentName);
                     index++;
@@ -440,14 +439,14 @@ public class YourApplication extents Application
 
             fragmentManagers.clear();
             if (!childFragmentManagers.isEmpty())
-                fragmentManagers.putAll(childFragmentManagers);
+                fragmentManagers.putAll(childFragmentManagers);//下一层节点
         }
 
         return result;
 
     }
 
-
+    //和上面方法一样，只不过是support包中的Fragment
     private static Map<String, List<String>> getSupportFragmentOfActivity(String
                                                                                   name, FragmentManager fragmentManager) {
         Map<String, FragmentManager> fragmentManagers = new LinkedHashMap<>();
@@ -495,7 +494,7 @@ public class YourApplication extents Application
 ```
 #### 应用程序是冷启动还是热启动
 
-在Application中可以注册Activity生命周期的监听器。应用程序初始化时，ActivityCount（Activity的个数）为-1，当有Activity调用onStart时，如果ActivityCount为-1，则将ActivityCount置为0，并马上开始记录启动Activity的个数（ActivityCount++）；在Activity调用onStop时，ActivityCount减一（ActivityCount--）；因此当应用程序退至后台时，ActivityCount为0（所有的Activity都会至少处于onStop状态），当再次启动应用程序时，如果ActivityCount为0，**则说明此次就是热启动了，否则还是默认的冷启动。**
+在Application中可以注册Activity生命周期的监听器。应用程序初始化时，ActivityCount（Activity的个数）为-1，当有Activity调用onStart时，如果ActivityCount为-1，则将ActivityCount置为0，并马上开始记录启动Activity的个数（ActivityCount++）；在Activity调用onStop时，ActivityCount减一（ActivityCount--）；因此当应用程序退至后台时，ActivityCount为0（所有的Activity都会至少处于onStop状态），当再次启动应用程序时，如果ActivityCount为0，**则说明此次就是热启动了。**
 
 ```
 /**
@@ -545,7 +544,8 @@ class AppColdStart {
     }
 }
 ```
-
 #### 其他信息
 
-除了上面的信息外，还可以统计用户使用的应用程序时间，在各个Activity停留的时间信息等，具体可查看[AppCrash](https://github.com/WJRye/AppCrash)中的TrackActivity类。
+除了上面的信息外，还可以统计用户使用应用程序的时间，在各个Activity停留的时间信息等，具体可查看[AppCrash](https://github.com/WJRye/AppCrash)中的[TrackActivity](https://github.com/WJRye/AppCrash/blob/master/crash/TrackActivity.java)类。
+
+
