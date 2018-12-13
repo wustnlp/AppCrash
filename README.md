@@ -334,7 +334,7 @@ PSS 结果一个比较好的特性是，您可以将所有进程的 PSS 相加�
 
 #### 获取应用程序Activity信息
 
-[通过反射获取应用程序的Activity栈信息](https://www.jianshu.com/p/ac0b237bac03)：
+[通过反射获取应用程序的Activity栈信息](https://www.jianshu.com/p/ac0b237bac03)（低版本得到的顺序可能不是Acitivity栈顺序，高版本得到的是Acitivity栈顺序，具体情况根据系统版本而定）：
 ```
     /**
      * 通过反射获取应用程序的Activity栈信息
