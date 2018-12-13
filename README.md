@@ -1,6 +1,28 @@
 ## App Crash
 
 在应用程序Crash的时候， 我们通常想收集一些信息来帮助分析本次Crash。下面列举了一些在应用程序Crash的时候，应该收集的一些基本信息。
+注意：此次在应用程序Crash时收集的信息，只用于帮助分析OutOfMemoryError异常，对其它异常只做参考。
+
+## 发生OOM的Java虚拟机内存区域
+
+Java虚拟机内存区域划分：
+
+ - 程序计数器：当前线程所执行的字节码的型号指示器。
+ - Java虚拟机栈：每个方法在执行的同时都会创建一个栈帧用于存储局部变量表，操作数栈，动态链接，方法出口等信息。
+ - 本地方法栈：于Java虚拟机一样，本地方法栈区域只是为Native方法服务。
+ -  Java堆：对象实例和数组。
+ - 方法区：用于存储已被虚拟机家在的类信息、常量、静态变量、即时编译器后的代码等数据。
+ - 运行常量池：用于存放编译器生成的各种字面量和符号引用。
+
+Java虚拟机会发生的OutOfMemoryError的内存区域：
+
+ - Java虚拟机栈：如果虚拟机可以动态扩展（当前大部分的Java虚拟机都可动态扩展，只不过Java虚拟机规范中也允许固定长度的虚拟机栈），如果扩展时无法申请到足够的内存，就会抛出OutOfMemoryError。
+ - 本地方法栈：与Java虚拟机栈一样。
+ -  Java堆：如果在堆中没有内存完成实例分配，并且也无法再扩展时，就会抛出OutOfMemoryError异常。
+ - 方法区：当方法区无法满足内存分配需求时，将抛出OutOfMemoryError异常。
+ - 运行常量池：当常量池无法再申请到内存会抛出OutOfMemoryError异常。
+
+--- 
 
 ### 如何收集
 
@@ -184,15 +206,21 @@ public class YourApplication extents Application
 ```
 #### 应用程序运行时的虚拟机信息
 
-应用程序运行时的虚拟机信息包括：Java，Native，Graphics，Stack，Code，Other，Allocated等。
+应用程序运行时的虚拟机信息包括：java-heap，native-heap，code，stack，graphics，private-other，system，total-pss，total-swap。
 
- - Java：从 Java 或 Kotlin 代码分配的对象内存。
- - Native：从 C 或 C++ 代码分配的对象内存。（即使您的应用中不使用 C++，您也可能会看到此处使用的一些原生内存，因为 Android 框架使用原生内存代表您处理各种任务，如处理图像资源和其他图形时，即使您编写的代码采用 Java 或 Kotlin 语言。）
- - Graphics：图形缓冲区队列向屏幕显示像素（包括 GL 表面、GL 纹理等等）所使用的内存。 （请注意，这是与 CPU 共享的内存，不是 GPU 专用内存。）
- - Stack： 您的应用中的原生堆栈和 Java 堆栈使用的内存。 这通常与您的应用运行多少线程有关。
- - Code：您的应用用于处理代码和资源（如 dex 字节码、已优化或已编译的 dex 码、.so 库和字体）的内存。
- - Other：您的应用使用的系统不确定如何分类的内存。
- - Allocated：您的应用分配的 Java/Kotlin 对象数。 它没有计入 C 或 C++ 中分配的对象。
+关于PSS定义：按比例分配占用内存 (PSS)
+
+> 这表示您的应用的 RAM 使用情况，考虑了在各进程之间共享 RAM 页的情况。您的进程独有的任何 RAM 页会直接影响其 PSS 值，而与其他进程共享的 RAM 页仅影响与共享量成比例的 PSS 值。例如，两个进程之间共享的 RAM 页会将其一半的大小贡献给每个进程的 PSS。
+
+PSS 结果一个比较好的特性是，您可以将所有进程的 PSS 相加来确定所有进程正在使用的实际内存。这意味着 PSS 适合测定进程的实际 RAM 比重和比较其他进程的 RAM 使用情况与可用总 RAM。
+
+ - java-heap：从 Java 或 Kotlin 代码分配的对象内存。
+ - native-heap：从 C 或 C++ 代码分配的对象内存。（即使您的应用中不使用 C++，您也可能会看到此处使用的一些原生内存，因为 Android 框架使用原生内存代表您处理各种任务，如处理图像资源和其他图形时，即使您编写的代码采用 Java 或 Kotlin 语言。）
+ -  code：您的应用用于处理代码和资源（如 dex 字节码、已优化或已编译的 dex 码、.so 库和字体）的内存。
+ -   stack： 您的应用中的原生堆栈和 Java 堆栈使用的内存。 这通常与您的应用运行多少线程有关。
+ - graphics：图形缓冲区队列向屏幕显示像素（包括 GL 表面、GL 纹理等等）所使用的内存。 （请注意，这是与 CPU 共享的内存，不是 GPU 专用内存。）
+ - total-pss： 包括所有 Zygote 分配（如上述 PSS 定义所述，通过进程之间的共享内存量来衡量）
+ 
 
 利用 Debug.MemoryInfo#getMemoryStats方法获取：
 ```
